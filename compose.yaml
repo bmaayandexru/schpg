@@ -1,0 +1,7 @@
+services:
+  web:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "7540:7540"
