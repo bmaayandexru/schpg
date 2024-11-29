@@ -141,7 +141,7 @@ func TasksGETHandle(res http.ResponseWriter, req *http.Request) {
 		TasksGETAllTasks(res, req)
 		return
 	} else { // поиск по дате или строке
-		fmt.Printf("Search *%s*\n", search)
+		// fmt.Printf("Search *%s*\n", search)
 		TasksGETSearch(res, req)
 		return
 	}
