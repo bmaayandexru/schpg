@@ -84,7 +84,7 @@ func (ts TaskStore) Find(search string) ([]Task, error) {
 
 	if len(search) == 0 {
 		//			rows, err = ts.DB.Query("SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT $1", limit)
-		err = ts.DB.Model(&tasks).Limit(limit).Select()
+		err = ts.DB.Model(&tasks).Limit(limit).Order("date").Order("title").Select()
 		return tasks, err
 	}
 	// парсим строку на дату
@@ -95,7 +95,7 @@ func (ts TaskStore) Find(search string) ([]Task, error) {
 				date.Format(templ),
 				limit)
 		*/
-		err = ts.DB.Model(&tasks).Where("date = $1", date).Limit(limit).Select()
+		err = ts.DB.Model(&tasks).Where("date = ?", date.Format(templ)).Limit(limit).Order("title").Select()
 		return tasks, err
 
 	} else {
@@ -106,9 +106,11 @@ func (ts TaskStore) Find(search string) ([]Task, error) {
 				search,
 				limit)
 		*/
-		err = ts.DB.Model(&tasks).Where("upper(title) like upper($1) or upper(comment) like upper($1)", search).Limit(limit).Select()
+		// тут по ходу надо query
+		_, err = ts.DB.Query(&tasks, "select * from tasks where upper(title) like upper(?) or upper(comment) like upper(?)", search, search)
+		// #42601 ошибка синтаксиса (примерное положение: ")")
+		// err = ts.DB.Model(&tasks).Where("upper(title) like upper(?) or upper(comment) like upper(?)", search).Limit(limit).Order("date").Order("title").Select()
 		return tasks, err
-
 	}
 	/*
 		for rows.Next() {
@@ -155,18 +157,19 @@ CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
     date CHAR(8) NOT NULL, 
     title VARCHAR(32) NOT NULL,
-    comment TEXT NOT NULL,
-    repeat VARCHAR(128) NOT NULL
+    comment TEXT,
+    repeat VARCHAR(128)
 );
 CREATE INDEX IF NOT EXISTS idx_date ON tasks (date); 
 CREATE INDEX IF NOT EXISTS idx_title ON tasks (title); 
 `
 
+/*
 var indexQuery string = `
-CREATE INDEX IF NOT EXISTS idx_date ON tasks (date); 
-CREATE INDEX IF NOT EXISTS idx_title ON tasks (title); 
+CREATE INDEX IF NOT EXISTS idx_date ON tasks (date);
+CREATE INDEX IF NOT EXISTS idx_title ON tasks (title);
 `
-
+*/
 func InitDBase() (*pg.DB, error) {
 	fmt.Println("Init Data Base...")
 	// Создание конфигурации для подключения к базе данных
