@@ -111,7 +111,13 @@ func TasksGETAllTasks(res http.ResponseWriter, req *http.Request) {
 }
 
 func TaskGETHandle(res http.ResponseWriter, req *http.Request) {
-	id := req.URL.Query().Get("id")
+	str_id := req.URL.Query().Get("id")
+	id, err := strconv.Atoi(str_id)
+	if err != nil {
+		fmt.Println(err)
+		retError(res, fmt.Sprintf("Tk GET id: Ошибка Atoi(): %s\n", err.Error()), http.StatusOK)
+		return
+	}
 	task, err := service.Service.Get(id)
 	if err != nil {
 		fmt.Println(err)
@@ -153,17 +159,20 @@ func TaskPUTHandle(res http.ResponseWriter, req *http.Request) {
 		retError(res, fmt.Sprintf("Tk PUT: Ошибка десериализации: %s\n", err.Error()), http.StatusOK)
 		return
 	}
-	// анализ task.ID не пустой, это число, есть в базе,
-	if len(task.ID) == 0 { // пустой id
-		retError(res, fmt.Sprintln("Tk PUT: Пустой ID"), http.StatusOK)
-		return
-	}
-	_, err = strconv.Atoi(task.ID)
-	if err != nil { // id не число
-		retError(res, fmt.Sprintln("Tk PUT: ID не число"), http.StatusOK)
-		return
-	}
-	// тут ID строка
+	/*
+		// анализ task.ID не пустой, это число, есть в базе,
+		if len(task.ID) == 0 { // пустой id
+			retError(res, fmt.Sprintln("Tk PUT: Пустой ID"), http.StatusOK)
+			return
+		}
+		_, err = strconv.Atoi(task.ID)
+		if err != nil { // id не число
+			retError(res, fmt.Sprintln("Tk PUT: ID не число"), http.StatusOK)
+			return
+		}
+		// тут ID строка
+		смена string на int
+	*/
 	_, err = service.Service.Get(task.ID)
 	if err != nil { // запрос SELECT * WHERE id = :id не должен вернуть ошибку
 		retError(res, fmt.Sprintf("Tk PUT: ID нет в базе. Ошибка: %v\n", err), http.StatusOK)
@@ -290,23 +299,22 @@ func TaskPOSTHandle(res http.ResponseWriter, req *http.Request) {
 }
 
 func TaskDELETEHandle(res http.ResponseWriter, req *http.Request) {
+	var (
+		id  int
+		err error
+	)
 	// получить id
-	id := req.URL.Query().Get("id")
-	if len(id) == 0 {
-		// нет id
-		retError(res, "Tk DELETE. Нет id", http.StatusOK)
-		return
-	}
-	if _, err := strconv.Atoi(id); err != nil {
+	str_id := req.URL.Query().Get("id")
+	if id, err = strconv.Atoi(str_id); err != nil {
 		retError(res, "Tk DELETE. id не число", http.StatusOK)
 		return
 	}
-	if _, err := service.Service.Get(id); err != nil {
+	if _, err = service.Service.Get(id); err != nil {
 		retError(res, fmt.Sprintf("Tk DELETE: id нет в базе. %s", err.Error()), http.StatusOK)
 		return
 	}
 	// удалить по id
-	err := service.Service.Delete(id)
+	err = service.Service.Delete(id)
 	if err != nil {
 		retError(res, fmt.Sprintf("Tk DELETE: id: Ошибка удаления из базы: %s\n", err.Error()), http.StatusOK)
 		return
@@ -338,7 +346,14 @@ func TaskHandle(res http.ResponseWriter, req *http.Request) {
 
 func TaskDonePOSTHandle(res http.ResponseWriter, req *http.Request) {
 	// задача выполнена
-	id := req.URL.Query().Get("id")
+	str_id := req.URL.Query().Get("id")
+	// id string -> int
+	id, err := strconv.Atoi(str_id)
+	if err != nil {
+		fmt.Println(err)
+		retError(res, fmt.Sprintf("Tkd POST id: Ошибка Atoi(): %s\n", err.Error()), http.StatusOK)
+		return
+	}
 	task, err := service.Service.Get(id)
 	if err != nil {
 		fmt.Println(err)

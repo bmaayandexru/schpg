@@ -25,8 +25,9 @@ func (ts TaskService) Add(task storage.Task) error {
 	return ts.store.Add(task)
 }
 
-// func (ts TaskService) Delete(id string) (sql.Result, error) {
-func (ts TaskService) Delete(id string) error {
+//	func (ts TaskService) Delete(id string) (sql.Result, error) {
+//		func (ts TaskService) Delete(id string) error {
+func (ts TaskService) Delete(id int) error {
 	return ts.store.Delete(id)
 }
 
@@ -35,7 +36,8 @@ func (ts TaskService) Find(search string) ([]storage.Task, error) {
 	return ts.store.Find(search)
 }
 
-func (ts TaskService) Get(id string) (storage.Task, error) {
+// func (ts TaskService) Get(id string) (storage.Task, error) {
+func (ts TaskService) Get(id int) (storage.Task, error) {
 	return ts.store.Get(id)
 }
 
@@ -44,7 +46,8 @@ func (ts TaskService) Update(task storage.Task) error {
 	return ts.store.Update(task)
 }
 
-func (ts TaskService) Done(id string) error {
+// func (ts TaskService) Done(id string) error {
+func (ts TaskService) Done(id int) error {
 	// выполнение задачи - это перенос либо удаление
 	var task storage.Task
 	var err error

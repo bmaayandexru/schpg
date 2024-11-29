@@ -22,7 +22,7 @@ var (
 func main() {
 	// инициализация сервиса и хранилища
 	// открытие БД
-	if db, err = storage.InitDBase(tests.ConnStr); err != nil {
+	if db, err = storage.InitDBase(); err != nil {
 		fmt.Printf("Ошибка открытия базы %v\n", err)
 		panic(err)
 	}
