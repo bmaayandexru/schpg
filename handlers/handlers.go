@@ -205,10 +205,12 @@ func TaskPUTHandle(res http.ResponseWriter, req *http.Request) {
 			}
 		}
 	} else {
-		task.Date, err = nd.NextDate(time.Now(), task.Date, task.Repeat)
-		if err != nil {
-			retError(res, fmt.Sprintf("Tk PUT: Ошибка NextDate: %v", err), http.StatusOK)
-			return
+		if len(task.Repeat) > 0 {
+			task.Date, err = nd.NextDate(time.Now(), task.Date, task.Repeat)
+			if err != nil {
+				retError(res, fmt.Sprintf("Tk PUT: Ошибка NextDate: %v", err), http.StatusOK)
+				return
+			}
 		}
 	}
 	// Task перезаписать в базе

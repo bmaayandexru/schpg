@@ -204,7 +204,7 @@ func NextDay(now time.Time, startDate time.Time, repSlice []string) (string, err
 	// тут всё корректно. можно возвращать значение
 	for {
 		startDate = startDate.AddDate(0, 0, dcount)
-		if startDate.Format(template) > now.Format(template) {
+		if startDate.Format(template) >= now.Format(template) {
 			break
 		}
 	}

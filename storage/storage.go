@@ -1,8 +1,8 @@
 package storage
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"time"
 
 	//_ "modernc.org/sqlite"
@@ -36,6 +36,11 @@ const (
 	limit = 50
 )
 
+var (
+	err   error
+	tasks []Task
+)
+
 type TaskStore struct {
 	DB *pg.DB
 }
@@ -44,111 +49,48 @@ func NewTaskStore(db *pg.DB) TaskStore {
 	return TaskStore{DB: db}
 }
 
-// storage не должен выдавать sql.Result только error
 func (ts TaskStore) Add(task Task) error {
-	/*
-		_, err := ts.DB.Exec("INSERT INTO scheduler(date, title, comment, repeat) VALUES ($1, $2, $3, $4) ",
-			task.Date, task.Title, task.Comment, task.Repeat)
-	*/
-	/*
-		pti := &Task{
-			Date:    task.Date,
-			Title:   task.Title,
-			Comment: task.Comment,
-			Repeat:  task.Repeat,
-		}
-	*/
-	_, err := ts.DB.Model(&task).Insert()
+	_, err = ts.DB.Model(&task).Insert()
 	return err
 }
 
-//	func (ts TaskStore) Delete(id string) (sql.Result, error) {
-//		func (ts TaskStore) Delete(id string) error {
 func (ts TaskStore) Delete(id int) error {
-	/*
-		_, err := ts.DB.Exec("DELETE FROM scheduler WHERE id = $1", id)
-	*/
-	var tasks []Task
-	_, err := ts.DB.Model(&tasks).Where("id = ?", id).Delete()
+	_, err = ts.DB.Model(&tasks).Where("id = ?", id).Delete()
 	return err
 }
 
-// func (ts TaskStore) Find(search string) (*sql.Rows, error) {
 func (ts TaskStore) Find(search string) ([]Task, error) {
-	var (
-		err   error
-		tasks []Task
-	)
-	// пустой слайс задач
-	// возвращаем всё если строка пустая
-
 	if len(search) == 0 {
-		//			rows, err = ts.DB.Query("SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT $1", limit)
+		// возвращаем всё если строка пустая
 		err = ts.DB.Model(&tasks).Limit(limit).Order("date").Order("title").Select()
 		return tasks, err
 	}
 	// парсим строку на дату
 	if date, err := time.Parse("02-01-2006", search); err == nil {
 		// дата есть
-		/*
-			rows, err = ts.DB.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE date = $1 LIMIT $2",
-				date.Format(templ),
-				limit)
-		*/
 		err = ts.DB.Model(&tasks).Where("date = ?", date.Format(templ)).Limit(limit).Order("title").Select()
 		return tasks, err
 
 	} else {
 		// даты нет
 		search = "%" + search + "%"
-		/*
-			rows, err = ts.DB.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE UPPER(title) LIKE UPPER($1) OR UPPER(comment) LIKE UPPER($1) ORDER BY date LIMIT $2",
-				search,
-				limit)
-		*/
-		// тут по ходу надо query
+		// тут по ходу надо query *** подтвердилось
 		_, err = ts.DB.Query(&tasks, "select * from tasks where upper(title) like upper(?) or upper(comment) like upper(?)", search, search)
-		// #42601 ошибка синтаксиса (примерное положение: ")")
-		// err = ts.DB.Model(&tasks).Where("upper(title) like upper(?) or upper(comment) like upper(?)", search).Limit(limit).Order("date").Order("title").Select()
 		return tasks, err
 	}
-	/*
-		for rows.Next() {
-			task := Task{}
-			err := rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
-			if err != nil {
-				return tasks, err
-			}
-			tasks = append(tasks, task)
-		}
-		if err = rows.Err(); err != nil {
-			return tasks, err
-		}
-	*/
-	return tasks, nil
 }
 
-// func (ts TaskStore) Get(id string) (Task, error) {
 func (ts TaskStore) Get(id int) (Task, error) {
-	task := Task{}
-	/*
-		row := ts.DB.QueryRow("SELECT * FROM scheduler WHERE id = $1", id)
-		err := row.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
-	*/
-	return task, nil
+	if err = ts.DB.Model(&tasks).Where("id = ?", id).Select(); err != nil {
+		return Task{}, err
+	}
+	return tasks[0], err
 }
 
-// func (ts TaskStore) Update(task Task) (sql.Result, error) {
 func (ts TaskStore) Update(task Task) error {
-	/*
-		_, err := ts.DB.Exec("UPDATE scheduler SET  date = $2, title = $3, comment = $4, repeat = $5 WHERE id = $1",
-			task.ID,
-			task.Date,
-			task.Title,
-			task.Comment,
-			task.Repeat)
-	*/
-	return nil
+	// так работает
+	_, err = ts.DB.Model(&task).WherePK().Update()
+	return err
 }
 
 // scheduler заменен на tasks
@@ -164,12 +106,6 @@ CREATE INDEX IF NOT EXISTS idx_date ON tasks (date);
 CREATE INDEX IF NOT EXISTS idx_title ON tasks (title); 
 `
 
-/*
-var indexQuery string = `
-CREATE INDEX IF NOT EXISTS idx_date ON tasks (date);
-CREATE INDEX IF NOT EXISTS idx_title ON tasks (title);
-`
-*/
 func InitDBase() (*pg.DB, error) {
 	fmt.Println("Init Data Base...")
 	// Создание конфигурации для подключения к базе данных
@@ -185,41 +121,22 @@ func InitDBase() (*pg.DB, error) {
 		return nil, err
 	}
 	// Проверка соединения
-	// err := db.Ping()
-	/*
-		var tasks []Task
-		_, err := db.Query(&tasks, "SELECT * FROM scheduler")
-		if err != nil {
-			//log.Fatalf("Ошибка подключения к базе данных: %v", err)
-			return nil, err
-		}
-		for _, task := range tasks {
-			fmt.Println(task)
-		}
-		fmt.Println("Успешное подключение к базе данных!")
-		return db, err
-	*/
+	ctx := context.Background()
+	if err := db.Ping(ctx); err != nil {
+		// ошибка подключения к базе
+		return nil, err
+	}
+	fmt.Println("База подключена (Ping Ok)")
+	return db, err
+}
 
-	// Создание таблицы
-	/*
-		// новый способ. не подключает индексы
-		err := db.Model((*Task)(nil)).CreateTable(&orm.CreateTableOptions{
-			IfNotExists:   true,
-			Temp:          false, // Постоянная таблица
-			FKConstraints: true,  // Включить ограничения (индексы, FK)
-		})
-		if err != nil {
-			// log.Fatalf("Ошибка создания таблицы: %v", err)
-			fmt.Printf("Ошибка создания таблицы: %v", err)
-			return nil, err
-		}
-		// добавление индекса
-		if _, err = db.Exec(indexQuery); err != nil {
-			fmt.Printf("Ошибка добавления индекса: %v", err)
-			return nil, err
-		}
-	*/
-	// Получение пользователей
+func createTable(db *pg.DB, query string) error {
+	_, err := db.Exec(query)
+	return err
+}
+
+// Получение пользователей вместо пинга
+/*
 	var tasks []Task
 	err := db.Model(&tasks).Select()
 	if err != nil {
@@ -228,11 +145,24 @@ func InitDBase() (*pg.DB, error) {
 	}
 	fmt.Println(tasks)
 	fmt.Println("База создана")
-	return db, err
+*/
 
-}
-
-func createTable(db *pg.DB, query string) error {
-	_, err := db.Exec(query)
-	return err
-}
+// Создание таблицы
+/*
+	// новый способ. не подключает индексы
+	err := db.Model((*Task)(nil)).CreateTable(&orm.CreateTableOptions{
+		IfNotExists:   true,
+		Temp:          false, // Постоянная таблица
+		FKConstraints: true,  // Включить ограничения (индексы, FK)
+	})
+	if err != nil {
+		// log.Fatalf("Ошибка создания таблицы: %v", err)
+		fmt.Printf("Ошибка создания таблицы: %v", err)
+		return nil, err
+	}
+	// добавление индекса
+	if _, err = db.Exec(indexQuery); err != nil {
+		fmt.Printf("Ошибка добавления индекса: %v", err)
+		return nil, err
+	}
+*/
