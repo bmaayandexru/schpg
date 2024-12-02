@@ -16,7 +16,6 @@ WORKDIR /apps
 RUN apk --no-cache add ca-certificates libc6-compat
 # копируем скомпилированный бинарный файл и .env из стадии сборки
 COPY --from=builder /app/web ./web
-COPY --from=builder /app/scheduler.db .
 COPY --from=builder /app/exefile .
 # устанавливаем разрешения на выполнение бинарного файла
 RUN chmod +x ./exefile
@@ -25,7 +24,6 @@ RUN chmod +x ./exefile
 EXPOSE 7540
 # окружение
 ENV TODO_PORT="7540"
-ENV TODO_CONNSTR="scheduler.db"
 ENV TODO_PASSWORD="12111"
 
 # запуск бинарника

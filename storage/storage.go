@@ -110,10 +110,18 @@ func InitDBase() (*pg.DB, error) {
 	fmt.Println("Init Data Base...")
 	// Создание конфигурации для подключения к базе данных
 	db := pg.Connect(&pg.Options{
-		Addr:     "localhost:5432", // Адрес PostgreSQL сервера
-		User:     "postgres",       // Имя пользователя
-		Password: "password",       // Пароль
-		Database: "dbscheduler",    // Имя базы данных
+		Addr: "localhost:5432", // Адрес PostgreSQL сервера
+		//Addr: ":5432", // Адрес PostgreSQL сервера
+
+		User:     "postgres", // Имя пользователя
+		Password: "password", // Пароль
+		//		Database: "dbscheduler", // Имя базы данных
+		Database: "testdb", // Имя базы данных
+
+		// docker compose
+		//User:     "root",   // Имя пользователя
+		//Password: "secret", // Пароль
+		//Database: "dbtest", // Имя базы данных
 	})
 	// оставляем старый способ, который подключает индексы
 	// создание таблицы
